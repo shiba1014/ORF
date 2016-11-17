@@ -7,12 +7,20 @@
 //
 
 import UIKit
+import CoreLocation
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, CLLocationManagerDelegate {
+    
+    var image: UIImage? = nil
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        let locationManager = CLLocationManager()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 100
+        locationManager.requestLocation()
     }
 
     override func didReceiveMemoryWarning() {
@@ -33,11 +41,22 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        picker.dismiss(animated: true) { 
+        picker.dismiss(animated: true) {
+            self.image =  info[UIImagePickerControllerOriginalImage] as! UIImage!
             let movieVC:MovieViewController = MovieViewController()
-            let image =  info[UIImagePickerControllerOriginalImage] as! UIImage!
-            movieVC.memoryImage = image
+            movieVC.memoryImage = self.image
+//            movieVC.latitude = Double(latitude!)
+//            movieVC.longitude = Double(longitude!)
             self.present(movieVC, animated: true, completion: nil)
         }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let latitude = manager.location?.coordinate.latitude
+        let longitude = manager.location?.coordinate.longitude
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print(error)
     }
 }

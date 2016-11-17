@@ -10,6 +10,7 @@ import UIKit
 import AVFoundation
 import Photos
 import Alamofire
+import SVProgressHUD
 
 class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegate {
     
@@ -18,15 +19,17 @@ class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegat
     var videoInput:AVCaptureDeviceInput!
     var isRecording : Bool = false
     var memoryImage: UIImage!
-
+    var latitude : Double = 0.0
+    var longitude : Double = 0.0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         // Do any additional setup after loading the view.
         startButton.isHidden = true
         
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -54,17 +57,19 @@ class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegat
         session.startRunning()
         
         isRecording = false
-        
         startButton.isHidden = false
         startButton.addTarget(self, action: #selector(MovieViewController.pushedStartButton), for: .touchUpInside)
         self.view.addSubview(startButton)
     }
     
     
+    
+    
     func pushedStartButton() {
         if(isRecording){
+            
             stopRecording()
-//            startButton.backgroundColor = UIColor.red
+            //            startButton.backgroundColor = UIColor.red
             isRecording = false
         }else{
             startRecording()
@@ -90,15 +95,15 @@ class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegat
     }
     
     func capture(_ captureOutput: AVCaptureFileOutput!, didFinishRecordingToOutputFileAt outputFileURL: URL!, fromConnections connections: [Any]!, error: Error!) {
-
+        
         /*--
-        let library = PHPhotoLibrary.shared()
-        library.performChanges({
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: outputFileURL as URL)
-        }) { (result: Bool, error: Error?) in
-            print("VIDEO FILE SAVED.")
-        }
---*/
+         let library = PHPhotoLibrary.shared()
+         library.performChanges({
+         PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: outputFileURL as URL)
+         }) { (result: Bool, error: Error?) in
+         print("VIDEO FILE SAVED.")
+         }
+         --*/
         uploadMemory(outputFileURL: outputFileURL)
     }
     
@@ -108,13 +113,15 @@ class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegat
         indicator.center = self.view.center
         self.view.addSubview(indicator)
         
+        SVProgressHUD.show(withStatus: "Uploading...")
+        
         indicator.startAnimating()
         
         var request = URLRequest(url: URL(string: "http://life-cloud.ht.sfc.keio.ac.jp/~karu/orf/NostalGear.php")!)
         request.httpMethod = "POST"
         
         let imageData = UIImageJPEGRepresentation(memoryImage,0.3)
-//        let movieData = NSData(contentsOf: outputFileURL)!
+        //        let movieData = NSData(contentsOf: outputFileURL)!
         
         Alamofire.upload(multipartFormData: {multipartFormData in
             
@@ -122,46 +129,48 @@ class MovieViewController: UIViewController, AVCaptureFileOutputRecordingDelegat
             multipartFormData.append(imageData!, withName: "object_image", fileName: "objectImage.jpeg", mimeType: "image/jpeg")
             multipartFormData.append(outputFileURL, withName: "object_movie", fileName: "memoryMovie.jpeg", mimeType: "video/quicktime")
             
-        }, with: request, encodingCompletion: {result in  
+            multipartFormData.append("\(self.latitude)".data(using: .utf8)!, withName: "latitude")
+            multipartFormData.append("\(self.longitude)".data(using: .utf8)!, withName: "latitude")
+        }, with: request, encodingCompletion: {result in
             switch result{
             case .success(request: let upload, _, _):
                 upload.responseData(completionHandler: { response in
                     print(NSString(data:response.result.value!, encoding:String.Encoding.utf8.rawValue) ?? "reponse")
-                    indicator.stopAnimating()
+                    SVProgressHUD.showSuccess(withStatus: "Success!")
                     self.dismiss(animated: true, completion: nil)
                 })
                 /*
-                upload.responseJSON { response in
-                    
-                    print(response.request ?? "request")   original URL request
-                    print(response.response ?? "response")  URL response
-                    print(response.data ?? "data")      server data
-                    print(response.result)    result of response serialization
-                                            self.showSuccesAlert()
-                    if let JSON = response.result.value {
-                        print("JSON: \(JSON)")
-            
+                 upload.responseJSON { response in
+                 
+                 print(response.request ?? "request")   original URL request
+                 print(response.response ?? "response")  URL response
+                 print(response.data ?? "data")      server data
+                 print(response.result)    result of response serialization
+                 self.showSuccesAlert()
+                 if let JSON = response.result.value {
+                 print("JSON: \(JSON)")
+                 
                  '
                  '
                  }
-                }
- */
-            
+                 }
+                 */
+                
             case .failure(let encodingError):
-            print(encodingError)
+                print(encodingError)
             }
         })
         
     }
     
     /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
+     // MARK: - Navigation
+     
+     // In a storyboard-based application, you will often want to do a little preparation before navigation
+     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+     // Get the new view controller using segue.destinationViewController.
+     // Pass the selected object to the new view controller.
+     }
+     */
+    
 }
